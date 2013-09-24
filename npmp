@@ -1,0 +1,74 @@
+#!/usr/bin/env node
+
+
+var fs = require('fs');
+var npm = require('npm');
+var path = require('path');
+
+
+var readPackageConfig = function () {
+  var json = fs.readFileSync('./package.json');
+  var package = JSON.parse(json);
+
+  return package;
+};
+
+
+var readSettings = function (filename, parent) {
+  var settings = parent ? Object.create(parent) : {};
+
+  filename = path.resolve(filename);
+  if (fs.existsSync(filename)) {
+    var json = fs.readFileSync(filename);
+    var child_settings = JSON.parse(json);
+    for (var key in child_settings) {
+      settings[key] = child_settings[key];
+    }
+  }
+
+  return settings;
+};
+
+
+npm.load(function (err, npm_client) {
+  var settings = readSettings(path.join(process.env['HOME'], '.npmprc'));
+  settings = readSettings('.npmprc', settings);
+  var host = 'git+ssh://' + settings['user'] + '@' + settings['hostname'];
+
+  var package = readPackageConfig();
+  var dependencies = package['privateDependencies'] || {};
+  var dependency_name_pairs = Object.keys(dependencies);
+
+  if (dependency_name_pairs.length === 0) {
+    return exit(null);
+  }
+
+  var command = process.argv[2];
+  switch (command) {
+  case 'install':
+    var dependency_sources = dependency_name_pairs.map(function (name) {
+      var version = dependencies[name];
+      if (!version || version === '*') {
+        version = 'master';
+      }
+
+      return host + ':' + name + '#' + version;
+    });
+
+    npm.commands.install(dependency_sources, exit);
+    break;
+
+  default:
+    console.error('Unknown command ' + command);
+    exit(405);
+  }
+});
+
+
+var exit = function (err) {
+  if (err) {
+    console.error(err.message);
+    process.exit(500);
+  }
+  process.exit(0);
+};
