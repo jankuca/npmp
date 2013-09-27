@@ -1,5 +1,13 @@
 {
   "name": "npmp",
-  "version": "0.1.0",
-  "author": "Jan Kuča (http://jankuca.com)"
+  "version": "0.1.1",
+  "author": "Jan Kuča (http://jankuca.com)",
+
+  "bin": {
+    "npmp": "./npmp"
+  },
+
+  "dependencies": {
+    "npm": "*"
+  }
 }
